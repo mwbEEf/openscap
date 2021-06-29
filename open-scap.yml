@@ -4,29 +4,27 @@
   vars:
     oscap_profile: xccdf_org.ssgproject.content_profile_stig
     oscap_policy: ssg-rhel8-ds
+    output_dir: /tmp/oscap-reports
+    date_string: "{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}" 
 
   tasks:
+    - name: install openscap scanner
+      yum:
+        name:
+          - openscap-scanner
+          - scap-security-guide
+        state: latest
 
-  - name: install openscap scanner
-    package:
-      name: "{{ item }}"
-      state: latest
-    with_items:
-    - openscap-scanner
-    - scap-security-guide
-
-  - block:
     - name: run openscap
-      command: oscap xccdf eval \
-        --profile {{ oscap_profile }} \
-        --results-arf /tmp/oscap-arf.xml \
-        --report /tmp/oscap-report.html \
-        --fetch-remote-resources \
+      command: > 
+        oscap xccdf eval --profile {{ oscap_profile }} 
+        --results-arf /tmp/oscap-arf.xml 
+        --report /tmp/oscap-report.html --fetch-remote-resources 
         /usr/share/xml/scap/ssg/content/{{ oscap_policy }}.xml
+      ignore_errors: true
 
-    always:
     - name: download report
       fetch:
-        src: /tmp/oscap-report.html
-        dest: ../oscap-reports/{{ inventory_hostname }}.html
+        src:  /tmp/oscap-report.html
+        dest: "{{ output_dir }}/{{ date_string }}/{{ inventory_hostname }}.html"
         flat: yes
